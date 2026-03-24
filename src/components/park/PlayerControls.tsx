@@ -1,21 +1,30 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
 const SPEED = 8;
 const MOUSE_SENSITIVITY = 0.002;
 
-const PlayerControls = () => {
+interface PlayerControlsProps {
+  onPositionChange: (pos: THREE.Vector3) => void;
+  onToggleBuild?: () => void;
+  onIsWalkingChange?: (walking: boolean) => void;
+}
+
+const PlayerControls = ({ onPositionChange, onToggleBuild, onIsWalkingChange }: PlayerControlsProps) => {
   const { camera, gl } = useThree();
   const keys = useRef<Record<string, boolean>>({});
   const euler = useRef(new THREE.Euler(0, 0, 0, 'YXZ'));
   const isLocked = useRef(false);
 
   useEffect(() => {
-    camera.position.set(0, 1.7, 10);
+    camera.position.set(0, 1.7, 15);
     
     const handleKeyDown = (e: KeyboardEvent) => {
       keys.current[e.code] = true;
+      if (e.code === 'KeyB' && onToggleBuild) {
+        onToggleBuild();
+      }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       keys.current[e.code] = false;
@@ -53,7 +62,7 @@ const PlayerControls = () => {
       document.removeEventListener('pointerlockchange', handlePointerLockChange);
       gl.domElement.removeEventListener('click', handleClick);
     };
-  }, [camera, gl]);
+  }, [camera, gl, onToggleBuild]);
 
   useFrame((_, delta) => {
     const direction = new THREE.Vector3();
@@ -71,11 +80,16 @@ const PlayerControls = () => {
     if (keys.current['KeyA'] || keys.current['ArrowLeft']) direction.sub(right);
     if (keys.current['KeyD'] || keys.current['ArrowRight']) direction.add(right);
 
-    if (direction.length() > 0) {
+    const isMoving = direction.length() > 0;
+    onIsWalkingChange?.(isMoving);
+
+    if (isMoving) {
       direction.normalize();
       camera.position.addScaledVector(direction, SPEED * delta);
-      camera.position.y = 1.7; // Keep player at eye height
+      camera.position.y = 1.7;
     }
+
+    onPositionChange(camera.position.clone());
   });
 
   return null;
