@@ -12,6 +12,7 @@ import PlayerControls from './PlayerControls';
 import HumanAvatar from './HumanAvatar';
 import House, { HouseData } from './House';
 import BuildingSystem, { PlacedBlock } from './BuildingSystem';
+import HouseInterior from './HouseInterior';
 import HUD from './HUD';
 
 const INITIAL_HOUSES: HouseData[] = [
@@ -132,6 +133,7 @@ const ParkScene = () => {
           onPositionChange={setPlayerPos}
           onToggleBuild={toggleBuildMode}
           onIsWalkingChange={setPlayerWalking}
+          houses={houses}
         />
 
         <Ground />
@@ -165,16 +167,22 @@ const ParkScene = () => {
         <Lamp position={[12, 0, 1.8]} />
         <Lamp position={[-12, 0, 1.8]} />
 
-        {/* Houses */}
+        {/* Houses with interiors */}
         {houses.map((house) => (
-          <House
-            key={house.id}
-            house={house}
-            playerPosition={playerPos}
-            onEnter={handleEnterHouse}
-            onExit={handleExitHouse}
-            isPlayerInside={currentHouseId === house.id}
-          />
+          <group key={house.id}>
+            <House
+              house={house}
+              playerPosition={playerPos}
+              onEnter={handleEnterHouse}
+              onExit={handleExitHouse}
+              isPlayerInside={currentHouseId === house.id}
+            />
+            <HouseInterior
+              position={house.position}
+              width={house.width}
+              depth={house.depth}
+            />
+          </group>
         ))}
 
         {/* NPC Avatars */}

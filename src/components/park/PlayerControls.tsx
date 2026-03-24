@@ -1,6 +1,8 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { HouseData } from './House';
+import { resolveCollisions } from './CollisionSystem';
 
 const SPEED = 8;
 const MOUSE_SENSITIVITY = 0.002;
@@ -9,9 +11,10 @@ interface PlayerControlsProps {
   onPositionChange: (pos: THREE.Vector3) => void;
   onToggleBuild?: () => void;
   onIsWalkingChange?: (walking: boolean) => void;
+  houses: HouseData[];
 }
 
-const PlayerControls = ({ onPositionChange, onToggleBuild, onIsWalkingChange }: PlayerControlsProps) => {
+const PlayerControls = ({ onPositionChange, onToggleBuild, onIsWalkingChange, houses }: PlayerControlsProps) => {
   const { camera, gl } = useThree();
   const keys = useRef<Record<string, boolean>>({});
   const euler = useRef(new THREE.Euler(0, 0, 0, 'YXZ'));
@@ -19,12 +22,10 @@ const PlayerControls = ({ onPositionChange, onToggleBuild, onIsWalkingChange }: 
 
   useEffect(() => {
     camera.position.set(0, 1.7, 15);
-    
+
     const handleKeyDown = (e: KeyboardEvent) => {
       keys.current[e.code] = true;
-      if (e.code === 'KeyB' && onToggleBuild) {
-        onToggleBuild();
-      }
+      if (e.code === 'KeyB' && onToggleBuild) onToggleBuild();
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       keys.current[e.code] = false;
@@ -44,9 +45,7 @@ const PlayerControls = ({ onPositionChange, onToggleBuild, onIsWalkingChange }: 
     };
 
     const handleClick = () => {
-      if (!isLocked.current) {
-        gl.domElement.requestPointerLock();
-      }
+      if (!isLocked.current) gl.domElement.requestPointerLock();
     };
 
     document.addEventListener('keydown', handleKeyDown);
@@ -72,7 +71,6 @@ const PlayerControls = ({ onPositionChange, onToggleBuild, onIsWalkingChange }: 
     camera.getWorldDirection(forward);
     forward.y = 0;
     forward.normalize();
-
     right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
 
     if (keys.current['KeyW'] || keys.current['ArrowUp']) direction.add(forward);
@@ -85,7 +83,18 @@ const PlayerControls = ({ onPositionChange, onToggleBuild, onIsWalkingChange }: 
 
     if (isMoving) {
       direction.normalize();
-      camera.position.addScaledVector(direction, SPEED * delta);
+      const newX = camera.position.x + direction.x * SPEED * delta;
+      const newZ = camera.position.z + direction.z * SPEED * delta;
+
+      // Resolve wall collisions
+      const resolved = resolveCollisions(
+        { x: newX, z: newZ },
+        { x: camera.position.x, z: camera.position.z },
+        houses
+      );
+
+      camera.position.x = resolved.x;
+      camera.position.z = resolved.z;
       camera.position.y = 1.7;
     }
 
