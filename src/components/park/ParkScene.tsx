@@ -133,6 +133,7 @@ const ParkScene = () => {
           onPositionChange={setPlayerPos}
           onToggleBuild={toggleBuildMode}
           onIsWalkingChange={setPlayerWalking}
+          houses={houses}
         />
 
         <Ground />
