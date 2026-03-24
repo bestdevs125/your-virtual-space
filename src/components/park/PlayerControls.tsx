@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { HouseData } from './House';
 import { resolveCollisions } from './CollisionSystem';
+import { SeatSpot } from './SeatSystem';
 
 const SPEED = 8;
 const MOUSE_SENSITIVITY = 0.002;
@@ -12,9 +13,18 @@ interface PlayerControlsProps {
   onToggleBuild?: () => void;
   onIsWalkingChange?: (walking: boolean) => void;
   houses: HouseData[];
+  isSitting: boolean;
+  currentSeat: SeatSpot | null;
 }
 
-const PlayerControls = ({ onPositionChange, onToggleBuild, onIsWalkingChange, houses }: PlayerControlsProps) => {
+const PlayerControls = ({
+  onPositionChange,
+  onToggleBuild,
+  onIsWalkingChange,
+  houses,
+  isSitting,
+  currentSeat,
+}: PlayerControlsProps) => {
   const { camera, gl } = useThree();
   const keys = useRef<Record<string, boolean>>({});
   const euler = useRef(new THREE.Euler(0, 0, 0, 'YXZ'));
@@ -36,7 +46,9 @@ const PlayerControls = ({ onPositionChange, onToggleBuild, onIsWalkingChange, ho
       euler.current.setFromQuaternion(camera.quaternion);
       euler.current.y -= e.movementX * MOUSE_SENSITIVITY;
       euler.current.x -= e.movementY * MOUSE_SENSITIVITY;
-      euler.current.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, euler.current.x));
+      // Limit look range when sitting
+      const maxPitch = isSitting ? Math.PI / 4 : Math.PI / 2;
+      euler.current.x = Math.max(-maxPitch, Math.min(maxPitch, euler.current.x));
       camera.quaternion.setFromEuler(euler.current);
     };
 
@@ -61,9 +73,18 @@ const PlayerControls = ({ onPositionChange, onToggleBuild, onIsWalkingChange, ho
       document.removeEventListener('pointerlockchange', handlePointerLockChange);
       gl.domElement.removeEventListener('click', handleClick);
     };
-  }, [camera, gl, onToggleBuild]);
+  }, [camera, gl, onToggleBuild, isSitting]);
 
   useFrame((_, delta) => {
+    // When sitting, smoothly move camera to seat position
+    if (isSitting && currentSeat) {
+      const target = new THREE.Vector3(...currentSeat.seatCameraPos);
+      camera.position.lerp(target, 0.1);
+      onPositionChange(camera.position.clone());
+      onIsWalkingChange?.(false);
+      return;
+    }
+
     const direction = new THREE.Vector3();
     const forward = new THREE.Vector3();
     const right = new THREE.Vector3();
@@ -86,7 +107,6 @@ const PlayerControls = ({ onPositionChange, onToggleBuild, onIsWalkingChange, ho
       const newX = camera.position.x + direction.x * SPEED * delta;
       const newZ = camera.position.z + direction.z * SPEED * delta;
 
-      // Resolve wall collisions
       const resolved = resolveCollisions(
         { x: newX, z: newZ },
         { x: camera.position.x, z: camera.position.z },
