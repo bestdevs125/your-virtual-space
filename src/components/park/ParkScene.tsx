@@ -167,16 +167,22 @@ const ParkScene = () => {
         <Lamp position={[12, 0, 1.8]} />
         <Lamp position={[-12, 0, 1.8]} />
 
-        {/* Houses */}
+        {/* Houses with interiors */}
         {houses.map((house) => (
-          <House
-            key={house.id}
-            house={house}
-            playerPosition={playerPos}
-            onEnter={handleEnterHouse}
-            onExit={handleExitHouse}
-            isPlayerInside={currentHouseId === house.id}
-          />
+          <group key={house.id}>
+            <House
+              house={house}
+              playerPosition={playerPos}
+              onEnter={handleEnterHouse}
+              onExit={handleExitHouse}
+              isPlayerInside={currentHouseId === house.id}
+            />
+            <HouseInterior
+              position={house.position}
+              width={house.width}
+              depth={house.depth}
+            />
+          </group>
         ))}
 
         {/* NPC Avatars */}
