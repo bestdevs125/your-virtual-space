@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber';
 import { Sky, Text } from '@react-three/drei';
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import * as THREE from 'three';
 import Ground from './Ground';
 import Tree from './Tree';
@@ -14,6 +14,9 @@ import House, { HouseData } from './House';
 import BuildingSystem, { PlacedBlock } from './BuildingSystem';
 import HouseInterior from './HouseInterior';
 import HUD from './HUD';
+import SeatPrompts from './SeatPrompts';
+import { SeatSpot, getHouseSeats } from './SeatSystem';
+import VoiceChat from './VoiceChat';
 
 const INITIAL_HOUSES: HouseData[] = [
   { id: 'house-1', position: [-20, 0, -15], wallColor: '#d4a574', roofColor: '#8B4513', doorColor: '#5c3a1e', width: 5, depth: 4, height: 3, owner: null },
@@ -42,7 +45,6 @@ const TREES: { pos: [number, number, number]; scale: number; leaf: string }[] = 
   { pos: [40, 0, -35], scale: 1.2, leaf: '#3a8c28' },
 ];
 
-// Simulated NPC avatars standing around the park
 const NPC_AVATARS = [
   { pos: [5, 0, 8] as [number, number, number], rot: 0.5, shirt: '#cc3333', pants: '#222', name: 'Rafi' },
   { pos: [-7, 0, -5] as [number, number, number], rot: -1, shirt: '#33cc66', pants: '#334', name: 'Tania' },
@@ -61,20 +63,38 @@ const ParkScene = () => {
   const [houses, setHouses] = useState<HouseData[]>(INITIAL_HOUSES);
   const [currentHouseId, setCurrentHouseId] = useState<string | null>(null);
   const [playerName] = useState('Player');
+  const [isSitting, setIsSitting] = useState(false);
+  const [currentSeat, setCurrentSeat] = useState<SeatSpot | null>(null);
+
+  // Generate all seat spots
+  const allSeats = useMemo(() => {
+    return houses.flatMap(h => getHouseSeats(h.id, h.position, h.width, h.depth));
+  }, [houses]);
 
   const handleEnterHouse = useCallback((houseId: string) => {
     setCurrentHouseId(houseId);
-    setHouses(prev => prev.map(h => 
+    setHouses(prev => prev.map(h =>
       h.id === houseId && !h.owner ? { ...h, owner: playerName } : h
     ));
   }, [playerName]);
 
   const handleExitHouse = useCallback((houseId: string) => {
     setCurrentHouseId(null);
-    // Transfer ownership - owner leaves, next person who enters becomes owner
-    setHouses(prev => prev.map(h => 
+    setIsSitting(false);
+    setCurrentSeat(null);
+    setHouses(prev => prev.map(h =>
       h.id === houseId ? { ...h, owner: null } : h
     ));
+  }, []);
+
+  const handleSit = useCallback((seat: SeatSpot) => {
+    setIsSitting(true);
+    setCurrentSeat(seat);
+  }, []);
+
+  const handleStandUp = useCallback(() => {
+    setIsSitting(false);
+    setCurrentSeat(null);
   }, []);
 
   const handlePlaceBlock = useCallback((block: PlacedBlock) => {
@@ -86,8 +106,8 @@ const ParkScene = () => {
   }, []);
 
   const toggleBuildMode = useCallback(() => {
-    setBuildMode(prev => !prev);
-  }, []);
+    if (!isSitting) setBuildMode(prev => !prev);
+  }, [isSitting]);
 
   const currentHouse = houses.find(h => h.id === currentHouseId);
 
@@ -104,6 +124,29 @@ const ParkScene = () => {
         onSelectType={setSelectedType}
         currentHouse={currentHouse ? `House ${currentHouse.id.split('-')[1]}` : null}
         isOwner={currentHouse?.owner === playerName}
+        playerName={playerName}
+      />
+
+      {/* Sitting indicator & stand up button */}
+      {isSitting && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20">
+          <div className="bg-black/70 backdrop-blur-sm rounded-xl px-5 py-3 text-white text-center">
+            <p className="text-sm font-bold mb-2">🪑 {currentSeat?.label} এ বসে আছেন</p>
+            <button
+              onClick={handleStandUp}
+              className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 rounded-lg text-xs font-bold transition-all"
+            >
+              ⬆ Stand Up
+            </button>
+            <p className="text-[10px] opacity-50 mt-1">মাউস দিয়ে চারদিকে তাকাতে পারবেন</p>
+          </div>
+        </div>
+      )}
+
+      {/* Voice Chat - only when inside house */}
+      <VoiceChat
+        isInsideHouse={!!currentHouseId}
+        currentHouseId={currentHouseId}
         playerName={playerName}
       />
 
@@ -134,6 +177,8 @@ const ParkScene = () => {
           onToggleBuild={toggleBuildMode}
           onIsWalkingChange={setPlayerWalking}
           houses={houses}
+          isSitting={isSitting}
+          currentSeat={currentSeat}
         />
 
         <Ground />
@@ -146,12 +191,10 @@ const ParkScene = () => {
 
         <Fountain position={[0, 0, 0]} />
 
-        {/* Trees */}
         {TREES.map((t, i) => (
           <Tree key={i} position={t.pos} scale={t.scale} leafColor={t.leaf} />
         ))}
 
-        {/* Benches */}
         <Bench position={[4, 0, 8]} rotation={[0, -Math.PI / 2, 0]} />
         <Bench position={[-4, 0, 8]} rotation={[0, Math.PI / 2, 0]} />
         <Bench position={[4, 0, -8]} rotation={[0, -Math.PI / 2, 0]} />
@@ -159,7 +202,6 @@ const ParkScene = () => {
         <Bench position={[8, 0, 4]} />
         <Bench position={[-8, 0, 4]} />
 
-        {/* Lamps */}
         <Lamp position={[1.8, 0, 12]} />
         <Lamp position={[-1.8, 0, 12]} />
         <Lamp position={[1.8, 0, -12]} />
@@ -185,6 +227,15 @@ const ParkScene = () => {
           </group>
         ))}
 
+        {/* Seat prompts inside houses */}
+        <SeatPrompts
+          seats={allSeats}
+          playerPosition={playerPos}
+          onSit={handleSit}
+          isSitting={isSitting}
+          currentSeatId={currentSeat?.id ?? null}
+        />
+
         {/* NPC Avatars */}
         {NPC_AVATARS.map((npc, i) => (
           <group key={i}>
@@ -207,7 +258,6 @@ const ParkScene = () => {
           </group>
         ))}
 
-        {/* Building System */}
         <BuildingSystem
           blocks={placedBlocks}
           onPlace={handlePlaceBlock}
