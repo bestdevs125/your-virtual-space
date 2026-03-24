@@ -12,6 +12,7 @@ import PlayerControls from './PlayerControls';
 import HumanAvatar from './HumanAvatar';
 import House, { HouseData } from './House';
 import BuildingSystem, { PlacedBlock } from './BuildingSystem';
+import HouseInterior from './HouseInterior';
 import HUD from './HUD';
 
 const INITIAL_HOUSES: HouseData[] = [
