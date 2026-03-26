@@ -5,7 +5,7 @@ import { HouseData } from './House';
 import { resolveCollisions } from './CollisionSystem';
 import { SeatSpot } from './SeatSystem';
 
-const SPEED = 8;
+const DEFAULT_SPEED = 8;
 const MOUSE_SENSITIVITY = 0.002;
 
 interface PlayerControlsProps {
@@ -16,6 +16,8 @@ interface PlayerControlsProps {
   isSitting: boolean;
   currentSeat: SeatSpot | null;
   onPointerLockChange?: (locked: boolean) => void;
+  speed?: number;
+  isMounted?: boolean;
 }
 
 const PlayerControls = ({
@@ -26,6 +28,8 @@ const PlayerControls = ({
   isSitting,
   currentSeat,
   onPointerLockChange,
+  speed = DEFAULT_SPEED,
+  isMounted = false,
 }: PlayerControlsProps) => {
   const { camera, gl } = useThree();
   const keys = useRef<Record<string, boolean>>({});
@@ -107,8 +111,8 @@ const PlayerControls = ({
 
     if (isMoving) {
       direction.normalize();
-      const newX = camera.position.x + direction.x * SPEED * delta;
-      const newZ = camera.position.z + direction.z * SPEED * delta;
+      const newX = camera.position.x + direction.x * speed * delta;
+      const newZ = camera.position.z + direction.z * speed * delta;
 
       const resolved = resolveCollisions(
         { x: newX, z: newZ },

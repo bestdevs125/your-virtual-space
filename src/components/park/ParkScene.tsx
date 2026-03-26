@@ -20,6 +20,7 @@ import VoiceChat from './VoiceChat';
 import Ocean from './Ocean';
 import Boat from './Boat';
 import WeaponSystem, { GunPickup } from './WeaponSystem';
+import VehicleSystem, { VehicleData } from './VehicleSystem';
 
 const INITIAL_HOUSES: HouseData[] = [
   { id: 'house-1', position: [-20, 0, -15], wallColor: '#d4a574', roofColor: '#8B4513', doorColor: '#5c3a1e', width: 5, depth: 4, height: 3, owner: null },
@@ -70,6 +71,16 @@ const NPC_AVATARS = [
   { pos: [-15, 0, -58] as [number, number, number], rot: 1.5, shirt: '#ffcc00', pants: '#225', name: 'Sumon' },
 ];
 
+const VEHICLES: VehicleData[] = [
+  { id: 'bike-1', type: 'bike', position: [10, 0, 10], rotation: 0, color: '#cc3333', maxPassengers: 2, speed: 14 },
+  { id: 'bike-2', type: 'bike', position: [-15, 0, 5], rotation: 1, color: '#3366cc', maxPassengers: 2, speed: 14 },
+  { id: 'car-1', type: 'car', position: [25, 0, 5], rotation: -0.5, color: '#2255aa', maxPassengers: 5, speed: 20 },
+  { id: 'car-2', type: 'car', position: [-30, 0, -20], rotation: 0.8, color: '#aa2222', maxPassengers: 5, speed: 20 },
+  { id: 'horse-1', type: 'horse', position: [15, 0, -20], rotation: 0.3, color: '#8B4513', maxPassengers: 2, speed: 12 },
+  { id: 'horse-2', type: 'horse', position: [-10, 0, 25], rotation: -0.7, color: '#d4a574', maxPassengers: 2, speed: 12 },
+  { id: 'horse-3', type: 'horse', position: [35, 0, -10], rotation: 1.5, color: '#333', maxPassengers: 2, speed: 12 },
+];
+
 const GUN_SPAWNS: [number, number, number][] = [
   [8, 0, -10],
   [-25, 0, 10],
@@ -77,6 +88,7 @@ const GUN_SPAWNS: [number, number, number][] = [
   [-10, 0, -52],
   [40, 0, 30],
 ];
+const SPEED_DEFAULT = 8;
 
 const ParkScene = () => {
   const [playerPos, setPlayerPos] = useState(new THREE.Vector3(0, 1.7, 15));
@@ -93,6 +105,9 @@ const ParkScene = () => {
   const [currentSeat, setCurrentSeat] = useState<SeatSpot | null>(null);
   const [hasGun, setHasGun] = useState(false);
   const [isPointerLocked, setIsPointerLocked] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const [mountedVehicle, setMountedVehicle] = useState<VehicleData | null>(null);
+  const [vehicleSpeed, setVehicleSpeed] = useState(SPEED_DEFAULT);
 
   const allSeats = useMemo(() => {
     return houses.flatMap(h => getHouseSeats(h.id, h.position, h.width, h.depth));
@@ -133,8 +148,24 @@ const ParkScene = () => {
   }, []);
 
   const toggleBuildMode = useCallback(() => {
-    if (!isSitting) setBuildMode(prev => !prev);
-  }, [isSitting]);
+    if (!isSitting && !isMounted) setBuildMode(prev => !prev);
+  }, [isSitting, isMounted]);
+
+  const handleMount = useCallback((vehicle: VehicleData) => {
+    setIsMounted(true);
+    setMountedVehicle(vehicle);
+    setVehicleSpeed(vehicle.speed);
+  }, []);
+
+  const handleDismount = useCallback(() => {
+    setIsMounted(false);
+    setMountedVehicle(null);
+    setVehicleSpeed(SPEED_DEFAULT);
+  }, []);
+
+  const handleVehicleMove = useCallback((id: string, pos: [number, number, number], rot: number) => {
+    // For future multiplayer sync
+  }, []);
 
   const currentHouse = houses.find(h => h.id === currentHouseId);
 
@@ -160,6 +191,25 @@ const ParkScene = () => {
           <div className="bg-red-900/70 text-white px-4 py-2 rounded-lg backdrop-blur-sm">
             <p className="text-sm font-bold">🔫 Armed</p>
             <p className="text-[10px] opacity-70">Click to shoot</p>
+          </div>
+        </div>
+      )}
+
+      {/* Vehicle indicator */}
+      {isMounted && mountedVehicle && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
+          <div className="bg-black/70 backdrop-blur-sm rounded-xl px-5 py-3 text-white text-center">
+            <p className="text-sm font-bold mb-1">
+              {mountedVehicle.type === 'bike' ? '🚲' : mountedVehicle.type === 'car' ? '🚗' : '🐴'}{' '}
+              {mountedVehicle.type === 'bike' ? 'Bike' : mountedVehicle.type === 'car' ? 'Car' : 'Horse'} এ চড়ছেন
+            </p>
+            <p className="text-[10px] opacity-70 mb-2">Speed: {mountedVehicle.speed} | Max: {mountedVehicle.maxPassengers} জন</p>
+            <button
+              onClick={handleDismount}
+              className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 rounded-lg text-xs font-bold transition-all"
+            >
+              [F] নামুন
+            </button>
           </div>
         </div>
       )}
@@ -215,6 +265,8 @@ const ParkScene = () => {
           isSitting={isSitting}
           currentSeat={currentSeat}
           onPointerLockChange={setIsPointerLocked}
+          speed={vehicleSpeed}
+          isMounted={isMounted}
         />
 
         <Ground />
@@ -324,6 +376,17 @@ const ParkScene = () => {
 
         {/* Weapon system */}
         <WeaponSystem hasGun={hasGun} isLocked={isPointerLocked} />
+
+        {/* Vehicle system */}
+        <VehicleSystem
+          vehicles={VEHICLES}
+          playerPos={playerPos}
+          isMounted={isMounted}
+          mountedVehicleId={mountedVehicle?.id ?? null}
+          onMount={handleMount}
+          onDismount={handleDismount}
+          onVehicleMove={handleVehicleMove}
+        />
 
         <BuildingSystem
           blocks={placedBlocks}
