@@ -20,6 +20,7 @@ import VoiceChat from './VoiceChat';
 import Ocean from './Ocean';
 import Boat from './Boat';
 import WeaponSystem, { GunPickup } from './WeaponSystem';
+import VehicleSystem, { VehicleData } from './VehicleSystem';
 
 const INITIAL_HOUSES: HouseData[] = [
   { id: 'house-1', position: [-20, 0, -15], wallColor: '#d4a574', roofColor: '#8B4513', doorColor: '#5c3a1e', width: 5, depth: 4, height: 3, owner: null },
@@ -68,6 +69,16 @@ const NPC_AVATARS = [
   // Beach NPCs
   { pos: [10, 0, -55] as [number, number, number], rot: 0, shirt: '#ff6633', pants: '#334', name: 'Karim' },
   { pos: [-15, 0, -58] as [number, number, number], rot: 1.5, shirt: '#ffcc00', pants: '#225', name: 'Sumon' },
+];
+
+const VEHICLES: VehicleData[] = [
+  { id: 'bike-1', type: 'bike', position: [10, 0, 10], rotation: 0, color: '#cc3333', maxPassengers: 2, speed: 14 },
+  { id: 'bike-2', type: 'bike', position: [-15, 0, 5], rotation: 1, color: '#3366cc', maxPassengers: 2, speed: 14 },
+  { id: 'car-1', type: 'car', position: [25, 0, 5], rotation: -0.5, color: '#2255aa', maxPassengers: 5, speed: 20 },
+  { id: 'car-2', type: 'car', position: [-30, 0, -20], rotation: 0.8, color: '#aa2222', maxPassengers: 5, speed: 20 },
+  { id: 'horse-1', type: 'horse', position: [15, 0, -20], rotation: 0.3, color: '#8B4513', maxPassengers: 2, speed: 12 },
+  { id: 'horse-2', type: 'horse', position: [-10, 0, 25], rotation: -0.7, color: '#d4a574', maxPassengers: 2, speed: 12 },
+  { id: 'horse-3', type: 'horse', position: [35, 0, -10], rotation: 1.5, color: '#333', maxPassengers: 2, speed: 12 },
 ];
 
 const GUN_SPAWNS: [number, number, number][] = [
