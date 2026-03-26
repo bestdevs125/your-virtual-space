@@ -56,6 +56,7 @@ const PlayerControls = ({
 
     const handlePointerLockChange = () => {
       isLocked.current = document.pointerLockElement === gl.domElement;
+      onPointerLockChange?.(isLocked.current);
     };
 
     const handleClick = () => {
