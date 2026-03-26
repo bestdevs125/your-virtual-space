@@ -104,6 +104,9 @@ const ParkScene = () => {
   const [currentSeat, setCurrentSeat] = useState<SeatSpot | null>(null);
   const [hasGun, setHasGun] = useState(false);
   const [isPointerLocked, setIsPointerLocked] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const [mountedVehicle, setMountedVehicle] = useState<VehicleData | null>(null);
+  const [vehicleSpeed, setVehicleSpeed] = useState(SPEED_DEFAULT);
 
   const allSeats = useMemo(() => {
     return houses.flatMap(h => getHouseSeats(h.id, h.position, h.width, h.depth));
