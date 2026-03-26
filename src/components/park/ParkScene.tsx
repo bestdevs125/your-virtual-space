@@ -212,6 +212,7 @@ const ParkScene = () => {
             </button>
           </div>
         </div>
+      )}
 
       {/* Sitting indicator */}
       {isSitting && (
