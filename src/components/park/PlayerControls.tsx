@@ -25,6 +25,7 @@ const PlayerControls = ({
   houses,
   isSitting,
   currentSeat,
+  onPointerLockChange,
 }: PlayerControlsProps) => {
   const { camera, gl } = useThree();
   const keys = useRef<Record<string, boolean>>({});
