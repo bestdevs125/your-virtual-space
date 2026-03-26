@@ -195,6 +195,24 @@ const ParkScene = () => {
         </div>
       )}
 
+      {/* Vehicle indicator */}
+      {isMounted && mountedVehicle && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20">
+          <div className="bg-black/70 backdrop-blur-sm rounded-xl px-5 py-3 text-white text-center">
+            <p className="text-sm font-bold mb-1">
+              {mountedVehicle.type === 'bike' ? '🚲' : mountedVehicle.type === 'car' ? '🚗' : '🐴'}{' '}
+              {mountedVehicle.type === 'bike' ? 'Bike' : mountedVehicle.type === 'car' ? 'Car' : 'Horse'} এ চড়ছেন
+            </p>
+            <p className="text-[10px] opacity-70 mb-2">Speed: {mountedVehicle.speed} | Max: {mountedVehicle.maxPassengers} জন</p>
+            <button
+              onClick={handleDismount}
+              className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 rounded-lg text-xs font-bold transition-all"
+            >
+              [F] নামুন
+            </button>
+          </div>
+        </div>
+
       {/* Sitting indicator */}
       {isSitting && (
         <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20">
