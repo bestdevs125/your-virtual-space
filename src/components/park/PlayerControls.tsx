@@ -15,6 +15,7 @@ interface PlayerControlsProps {
   houses: HouseData[];
   isSitting: boolean;
   currentSeat: SeatSpot | null;
+  onPointerLockChange?: (locked: boolean) => void;
 }
 
 const PlayerControls = ({
