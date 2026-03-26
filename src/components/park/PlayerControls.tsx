@@ -15,6 +15,7 @@ interface PlayerControlsProps {
   houses: HouseData[];
   isSitting: boolean;
   currentSeat: SeatSpot | null;
+  onPointerLockChange?: (locked: boolean) => void;
 }
 
 const PlayerControls = ({
@@ -24,6 +25,7 @@ const PlayerControls = ({
   houses,
   isSitting,
   currentSeat,
+  onPointerLockChange,
 }: PlayerControlsProps) => {
   const { camera, gl } = useThree();
   const keys = useRef<Record<string, boolean>>({});
@@ -54,6 +56,7 @@ const PlayerControls = ({
 
     const handlePointerLockChange = () => {
       isLocked.current = document.pointerLockElement === gl.domElement;
+      onPointerLockChange?.(isLocked.current);
     };
 
     const handleClick = () => {
