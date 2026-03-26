@@ -17,6 +17,9 @@ import HUD from './HUD';
 import SeatPrompts from './SeatPrompts';
 import { SeatSpot, getHouseSeats } from './SeatSystem';
 import VoiceChat from './VoiceChat';
+import Ocean from './Ocean';
+import Boat from './Boat';
+import WeaponSystem, { GunPickup } from './WeaponSystem';
 
 const INITIAL_HOUSES: HouseData[] = [
   { id: 'house-1', position: [-20, 0, -15], wallColor: '#d4a574', roofColor: '#8B4513', doorColor: '#5c3a1e', width: 5, depth: 4, height: 3, owner: null },
@@ -43,6 +46,18 @@ const TREES: { pos: [number, number, number]; scale: number; leaf: string }[] = 
   { pos: [15, 0, 35], scale: 1.0, leaf: '#2d6b1e' },
   { pos: [-40, 0, -35], scale: 1.5, leaf: '#1f5a15' },
   { pos: [40, 0, -35], scale: 1.2, leaf: '#3a8c28' },
+  // Extra trees for bigger world
+  { pos: [-50, 0, 40], scale: 1.3, leaf: '#2d6b1e' },
+  { pos: [50, 0, 40], scale: 1.1, leaf: '#3a8c28' },
+  { pos: [-60, 0, -10], scale: 1.5, leaf: '#1f5a15' },
+  { pos: [60, 0, 10], scale: 1.2, leaf: '#2d6b1e' },
+  { pos: [0, 0, 55], scale: 1.4, leaf: '#3a8c28' },
+  { pos: [-30, 0, 50], scale: 1.0, leaf: '#1f5a15' },
+  { pos: [30, 0, 50], scale: 1.3, leaf: '#2d6b1e' },
+  // Beach palm trees
+  { pos: [-20, 0, -50], scale: 1.1, leaf: '#3a8c28' },
+  { pos: [0, 0, -55], scale: 0.9, leaf: '#4a9c38' },
+  { pos: [25, 0, -48], scale: 1.2, leaf: '#3a8c28' },
 ];
 
 const NPC_AVATARS = [
@@ -50,6 +65,17 @@ const NPC_AVATARS = [
   { pos: [-7, 0, -5] as [number, number, number], rot: -1, shirt: '#33cc66', pants: '#334', name: 'Tania' },
   { pos: [15, 0, 3] as [number, number, number], rot: 2.5, shirt: '#cc8833', pants: '#445', name: 'Arif' },
   { pos: [-12, 0, 18] as [number, number, number], rot: 1.2, shirt: '#6633cc', pants: '#333', name: 'Mina' },
+  // Beach NPCs
+  { pos: [10, 0, -55] as [number, number, number], rot: 0, shirt: '#ff6633', pants: '#334', name: 'Karim' },
+  { pos: [-15, 0, -58] as [number, number, number], rot: 1.5, shirt: '#ffcc00', pants: '#225', name: 'Sumon' },
+];
+
+const GUN_SPAWNS: [number, number, number][] = [
+  [8, 0, -10],
+  [-25, 0, 10],
+  [30, 0, -35],
+  [-10, 0, -52],
+  [40, 0, 30],
 ];
 
 const ParkScene = () => {
@@ -65,8 +91,9 @@ const ParkScene = () => {
   const [playerName] = useState('Player');
   const [isSitting, setIsSitting] = useState(false);
   const [currentSeat, setCurrentSeat] = useState<SeatSpot | null>(null);
+  const [hasGun, setHasGun] = useState(false);
+  const [isPointerLocked, setIsPointerLocked] = useState(false);
 
-  // Generate all seat spots
   const allSeats = useMemo(() => {
     return houses.flatMap(h => getHouseSeats(h.id, h.position, h.width, h.depth));
   }, [houses]);
@@ -127,7 +154,17 @@ const ParkScene = () => {
         playerName={playerName}
       />
 
-      {/* Sitting indicator & stand up button */}
+      {/* Gun indicator */}
+      {hasGun && (
+        <div className="absolute top-4 right-4 z-20 pointer-events-none">
+          <div className="bg-red-900/70 text-white px-4 py-2 rounded-lg backdrop-blur-sm">
+            <p className="text-sm font-bold">🔫 Armed</p>
+            <p className="text-[10px] opacity-70">Click to shoot</p>
+          </div>
+        </div>
+      )}
+
+      {/* Sitting indicator */}
       {isSitting && (
         <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20">
           <div className="bg-black/70 backdrop-blur-sm rounded-xl px-5 py-3 text-white text-center">
@@ -138,12 +175,10 @@ const ParkScene = () => {
             >
               ⬆ Stand Up
             </button>
-            <p className="text-[10px] opacity-50 mt-1">মাউস দিয়ে চারদিকে তাকাতে পারবেন</p>
           </div>
         </div>
       )}
 
-      {/* Voice Chat - only when inside house */}
       <VoiceChat
         isInsideHouse={!!currentHouseId}
         currentHouseId={currentHouseId}
@@ -162,15 +197,15 @@ const ParkScene = () => {
           castShadow
           shadow-mapSize-width={2048}
           shadow-mapSize-height={2048}
-          shadow-camera-far={200}
-          shadow-camera-left={-50}
-          shadow-camera-right={50}
-          shadow-camera-top={50}
-          shadow-camera-bottom={-50}
+          shadow-camera-far={300}
+          shadow-camera-left={-100}
+          shadow-camera-right={100}
+          shadow-camera-top={100}
+          shadow-camera-bottom={-100}
         />
 
         <Sky sunPosition={[100, 50, 100]} turbidity={2} rayleigh={1} />
-        <fog attach="fog" args={['#c8dff5', 50, 150]} />
+        <fog attach="fog" args={['#c8dff5', 80, 250]} />
 
         <PlayerControls
           onPositionChange={setPlayerPos}
@@ -179,15 +214,28 @@ const ParkScene = () => {
           houses={houses}
           isSitting={isSitting}
           currentSeat={currentSeat}
+          onPointerLockChange={setIsPointerLocked}
         />
 
         <Ground />
+
+        {/* Ocean & Beach */}
+        <Ocean />
+
+        {/* Boats on the sea */}
+        <Boat position={[-15, -0.1, -90]} color="#8B4513" size="medium" />
+        <Boat position={[10, -0.1, -100]} color="#5c3a1e" size="large" />
+        <Boat position={[35, -0.1, -85]} color="#cc6633" size="small" />
+        <Boat position={[-30, -0.1, -110]} color="#4a6741" size="medium" />
+        <Boat position={[0, -0.1, -120]} color="#8B0000" size="large" />
 
         {/* Paths */}
         <Path position={[0, 0, 0]} length={100} width={3} />
         <Path position={[0, 0, 0]} rotation={[0, Math.PI / 2, 0]} length={100} width={3} />
         <Path position={[0, 0, 0]} rotation={[0, Math.PI / 4, 0]} length={70} width={2} />
         <Path position={[0, 0, 0]} rotation={[0, -Math.PI / 4, 0]} length={70} width={2} />
+        {/* Path to beach */}
+        <Path position={[0, 0, -30]} length={50} width={2.5} />
 
         <Fountain position={[0, 0, 0]} />
 
@@ -201,6 +249,9 @@ const ParkScene = () => {
         <Bench position={[-4, 0, -8]} rotation={[0, Math.PI / 2, 0]} />
         <Bench position={[8, 0, 4]} />
         <Bench position={[-8, 0, 4]} />
+        {/* Beach benches */}
+        <Bench position={[-10, 0, -52]} rotation={[0, Math.PI, 0]} />
+        <Bench position={[15, 0, -50]} rotation={[0, Math.PI, 0]} />
 
         <Lamp position={[1.8, 0, 12]} />
         <Lamp position={[-1.8, 0, 12]} />
@@ -208,6 +259,10 @@ const ParkScene = () => {
         <Lamp position={[-1.8, 0, -12]} />
         <Lamp position={[12, 0, 1.8]} />
         <Lamp position={[-12, 0, 1.8]} />
+        {/* Beach lamps */}
+        <Lamp position={[0, 0, -48]} />
+        <Lamp position={[-20, 0, -46]} />
+        <Lamp position={[20, 0, -46]} />
 
         {/* Houses with interiors */}
         {houses.map((house) => (
@@ -227,7 +282,6 @@ const ParkScene = () => {
           </group>
         ))}
 
-        {/* Seat prompts inside houses */}
         <SeatPrompts
           seats={allSeats}
           playerPosition={playerPos}
@@ -257,6 +311,19 @@ const ParkScene = () => {
             </Text>
           </group>
         ))}
+
+        {/* Gun pickups */}
+        {GUN_SPAWNS.map((pos, i) => (
+          <GunPickup
+            key={i}
+            position={pos}
+            playerPos={playerPos}
+            onPickup={() => setHasGun(true)}
+          />
+        ))}
+
+        {/* Weapon system */}
+        <WeaponSystem hasGun={hasGun} isLocked={isPointerLocked} />
 
         <BuildingSystem
           blocks={placedBlocks}
