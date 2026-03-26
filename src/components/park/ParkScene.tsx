@@ -88,6 +88,7 @@ const GUN_SPAWNS: [number, number, number][] = [
   [-10, 0, -52],
   [40, 0, 30],
 ];
+const SPEED_DEFAULT = 8;
 
 const ParkScene = () => {
   const [playerPos, setPlayerPos] = useState(new THREE.Vector3(0, 1.7, 15));
