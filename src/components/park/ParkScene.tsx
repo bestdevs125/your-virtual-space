@@ -148,8 +148,24 @@ const ParkScene = () => {
   }, []);
 
   const toggleBuildMode = useCallback(() => {
-    if (!isSitting) setBuildMode(prev => !prev);
-  }, [isSitting]);
+    if (!isSitting && !isMounted) setBuildMode(prev => !prev);
+  }, [isSitting, isMounted]);
+
+  const handleMount = useCallback((vehicle: VehicleData) => {
+    setIsMounted(true);
+    setMountedVehicle(vehicle);
+    setVehicleSpeed(vehicle.speed);
+  }, []);
+
+  const handleDismount = useCallback(() => {
+    setIsMounted(false);
+    setMountedVehicle(null);
+    setVehicleSpeed(SPEED_DEFAULT);
+  }, []);
+
+  const handleVehicleMove = useCallback((id: string, pos: [number, number, number], rot: number) => {
+    // For future multiplayer sync
+  }, []);
 
   const currentHouse = houses.find(h => h.id === currentHouseId);
 
@@ -230,6 +246,8 @@ const ParkScene = () => {
           isSitting={isSitting}
           currentSeat={currentSeat}
           onPointerLockChange={setIsPointerLocked}
+          speed={vehicleSpeed}
+          isMounted={isMounted}
         />
 
         <Ground />
@@ -339,6 +357,17 @@ const ParkScene = () => {
 
         {/* Weapon system */}
         <WeaponSystem hasGun={hasGun} isLocked={isPointerLocked} />
+
+        {/* Vehicle system */}
+        <VehicleSystem
+          vehicles={VEHICLES}
+          playerPos={playerPos}
+          isMounted={isMounted}
+          mountedVehicleId={mountedVehicle?.id ?? null}
+          onMount={handleMount}
+          onDismount={handleDismount}
+          onVehicleMove={handleVehicleMove}
+        />
 
         <BuildingSystem
           blocks={placedBlocks}
