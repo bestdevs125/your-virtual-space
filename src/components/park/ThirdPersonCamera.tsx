@@ -97,6 +97,7 @@ const ThirdPersonCamera = ({
       return;
     }
 
+    // Forward = direction camera looks at (away from camera towards player)
     const forward = new THREE.Vector3(-Math.sin(yaw.current), 0, -Math.cos(yaw.current));
     const right = new THREE.Vector3(-Math.cos(yaw.current), 0, Math.sin(yaw.current));
     const direction = new THREE.Vector3();
@@ -120,6 +121,8 @@ const ThirdPersonCamera = ({
       );
       playerPosition.current.x = resolved.x;
       playerPosition.current.z = resolved.z;
+      // Character faces the movement direction (away from camera)
+      onRotationChange(Math.atan2(direction.x, direction.z));
     }
 
     // Camera behind player based on yaw
@@ -131,7 +134,6 @@ const ThirdPersonCamera = ({
     camera.lookAt(playerPosition.current.x, playerPosition.current.y + 1.5, playerPosition.current.z);
 
     onPositionChange(playerPosition.current.clone());
-    onRotationChange(yaw.current);
   });
 
   return null;

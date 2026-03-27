@@ -107,6 +107,8 @@ const ParkScene = () => {
   const [vehicleSpeed, setVehicleSpeed] = useState(SPEED_DEFAULT);
   const [characterConfig, setCharacterConfig] = useState<CharacterConfig>(DEFAULT_CHARACTER);
   const [showCustomization, setShowCustomization] = useState(false);
+  const [health, setHealth] = useState(100);
+  const [isRespawning, setIsRespawning] = useState(false);
 
   const allSeats = useMemo(() => {
     return houses.flatMap(h => getHouseSeats(h.id, h.position, h.width, h.depth));
@@ -164,6 +166,36 @@ const ParkScene = () => {
 
   const handleVehicleMove = useCallback((id: string, pos: [number, number, number], rot: number) => {}, []);
 
+  const handleTakeDamage = useCallback((dmg: number) => {
+    setHealth(prev => {
+      const newHealth = Math.max(0, prev - dmg);
+      if (newHealth <= 0) {
+        // Respawn from sky
+        setIsRespawning(true);
+        setTimeout(() => {
+          const spawnPoints: [number, number, number][] = [
+            [0, 0, 15], [20, 0, 0], [-20, 0, 10], [10, 0, -20], [-15, 0, -5],
+          ];
+          const spawn = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
+          setPlayerPos(new THREE.Vector3(spawn[0], 30, spawn[2])); // Start from sky
+          setHealth(100);
+          setIsRespawning(false);
+          // Gravity drop
+          const dropInterval = setInterval(() => {
+            setPlayerPos(prev => {
+              if (prev.y <= 0) {
+                clearInterval(dropInterval);
+                return new THREE.Vector3(prev.x, 0, prev.z);
+              }
+              return new THREE.Vector3(prev.x, prev.y - 1, prev.z);
+            });
+          }, 50);
+        }, 1500);
+      }
+      return newHealth;
+    });
+  }, []);
+
   const currentHouse = houses.find(h => h.id === currentHouseId);
 
   return (
@@ -199,6 +231,33 @@ const ParkScene = () => {
           onChange={setCharacterConfig}
           onClose={() => setShowCustomization(false)}
         />
+      )}
+
+      {/* Health bar */}
+      <div className="absolute bottom-4 left-4 z-20 pointer-events-none">
+        <div className="bg-black/70 backdrop-blur-sm rounded-xl px-4 py-3 text-white">
+          <p className="text-xs font-bold mb-1">❤️ Health</p>
+          <div className="w-40 h-3 bg-gray-700 rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-300"
+              style={{
+                width: `${health}%`,
+                backgroundColor: health > 60 ? '#22c55e' : health > 30 ? '#eab308' : '#ef4444',
+              }}
+            />
+          </div>
+          <p className="text-[10px] mt-1 opacity-70">{health}%</p>
+        </div>
+      </div>
+
+      {/* Respawn overlay */}
+      {isRespawning && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="text-white text-center">
+            <p className="text-3xl font-bold mb-2">💀 You Died!</p>
+            <p className="text-sm opacity-70">Respawning...</p>
+          </div>
+        </div>
       )}
 
       {/* Gun indicator */}
@@ -396,7 +455,7 @@ const ParkScene = () => {
           <GunPickup key={i} position={pos} playerPos={playerPos} onPickup={() => setHasGun(true)} />
         ))}
 
-        <WeaponSystem hasGun={hasGun} isLocked={isPointerLocked} />
+        <WeaponSystem hasGun={hasGun} isLocked={isPointerLocked} playerPos={playerPos} playerRotation={playerRotation} />
 
         <VehicleSystem
           vehicles={VEHICLES}
