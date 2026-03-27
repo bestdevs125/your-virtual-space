@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { HouseData } from './House';
@@ -41,17 +41,7 @@ const ThirdPersonCamera = ({
   const isLocked = useRef(false);
   const playerPosition = useRef(new THREE.Vector3(0, 0, 15));
 
-  // Setup event listeners
-  useFrame(() => {}, -1); // ensure we run setup once
-
-  useRef(() => {})(); // no-op
-
-  // Use a ref for the event setup to only run once
-  const setupDone = useRef(false);
-  if (!setupDone.current) {
-    setupDone.current = true;
-    playerPosition.current.set(0, 0, 15);
-
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       keys.current[e.code] = true;
       if (e.code === 'KeyB' && onToggleBuild) onToggleBuild();
@@ -63,8 +53,7 @@ const ThirdPersonCamera = ({
       if (!isLocked.current) return;
       yaw.current -= e.movementX * MOUSE_SENSITIVITY;
       pitch.current -= e.movementY * MOUSE_SENSITIVITY;
-      const maxPitch = isSitting ? Math.PI / 4 : Math.PI / 3;
-      pitch.current = Math.max(0.05, Math.min(maxPitch, pitch.current));
+      pitch.current = Math.max(0.05, Math.min(Math.PI / 3, pitch.current));
     };
     const handlePointerLockChange = () => {
       isLocked.current = document.pointerLockElement === gl.domElement;
@@ -79,7 +68,15 @@ const ThirdPersonCamera = ({
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('pointerlockchange', handlePointerLockChange);
     gl.domElement.addEventListener('click', handleClick);
-  }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('pointerlockchange', handlePointerLockChange);
+      gl.domElement.removeEventListener('click', handleClick);
+    };
+  }, [camera, gl, onToggleBuild, onPointerLockChange]);
 
   useFrame((_, delta) => {
     if (isSitting && currentSeat) {
@@ -89,9 +86,8 @@ const ThirdPersonCamera = ({
         currentSeat.seatCameraPos[2]
       );
       playerPosition.current.lerp(target, 0.1);
-      // Camera behind the seat
-      const camX = playerPosition.current.x - Math.sin(yaw.current) * CAMERA_DISTANCE;
-      const camZ = playerPosition.current.z - Math.cos(yaw.current) * CAMERA_DISTANCE;
+      const camX = playerPosition.current.x + Math.sin(yaw.current) * CAMERA_DISTANCE;
+      const camZ = playerPosition.current.z + Math.cos(yaw.current) * CAMERA_DISTANCE;
       const camY = playerPosition.current.y + CAMERA_HEIGHT;
       camera.position.set(camX, camY, camZ);
       camera.lookAt(playerPosition.current.x, playerPosition.current.y + 1.5, playerPosition.current.z);
@@ -124,14 +120,12 @@ const ThirdPersonCamera = ({
       );
       playerPosition.current.x = resolved.x;
       playerPosition.current.z = resolved.z;
-      // Face movement direction
-      yaw.current = Math.atan2(-direction.x, -direction.z);
     }
 
-    // Camera position: behind and above the player
+    // Camera behind player based on yaw
     const camX = playerPosition.current.x + Math.sin(yaw.current) * CAMERA_DISTANCE;
     const camZ = playerPosition.current.z + Math.cos(yaw.current) * CAMERA_DISTANCE;
-    const camY = playerPosition.current.y + CAMERA_HEIGHT + Math.sin(pitch.current) * CAMERA_DISTANCE * 0.5;
+    const camY = playerPosition.current.y + CAMERA_HEIGHT + Math.sin(pitch.current) * 2;
 
     camera.position.lerp(new THREE.Vector3(camX, camY, camZ), 0.1);
     camera.lookAt(playerPosition.current.x, playerPosition.current.y + 1.5, playerPosition.current.z);
