@@ -233,6 +233,33 @@ const ParkScene = () => {
         />
       )}
 
+      {/* Health bar */}
+      <div className="absolute bottom-4 left-4 z-20 pointer-events-none">
+        <div className="bg-black/70 backdrop-blur-sm rounded-xl px-4 py-3 text-white">
+          <p className="text-xs font-bold mb-1">❤️ Health</p>
+          <div className="w-40 h-3 bg-gray-700 rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-300"
+              style={{
+                width: `${health}%`,
+                backgroundColor: health > 60 ? '#22c55e' : health > 30 ? '#eab308' : '#ef4444',
+              }}
+            />
+          </div>
+          <p className="text-[10px] mt-1 opacity-70">{health}%</p>
+        </div>
+      </div>
+
+      {/* Respawn overlay */}
+      {isRespawning && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="text-white text-center">
+            <p className="text-3xl font-bold mb-2">💀 You Died!</p>
+            <p className="text-sm opacity-70">Respawning...</p>
+          </div>
+        </div>
+      )}
+
       {/* Gun indicator */}
       {hasGun && !showCustomization && (
         <div className="absolute top-16 right-4 z-20 pointer-events-none">
@@ -428,7 +455,7 @@ const ParkScene = () => {
           <GunPickup key={i} position={pos} playerPos={playerPos} onPickup={() => setHasGun(true)} />
         ))}
 
-        <WeaponSystem hasGun={hasGun} isLocked={isPointerLocked} />
+        <WeaponSystem hasGun={hasGun} isLocked={isPointerLocked} playerPos={playerPos} playerRotation={playerRotation} />
 
         <VehicleSystem
           vehicles={VEHICLES}
