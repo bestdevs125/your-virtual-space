@@ -107,6 +107,8 @@ const ParkScene = () => {
   const [vehicleSpeed, setVehicleSpeed] = useState(SPEED_DEFAULT);
   const [characterConfig, setCharacterConfig] = useState<CharacterConfig>(DEFAULT_CHARACTER);
   const [showCustomization, setShowCustomization] = useState(false);
+  const [health, setHealth] = useState(100);
+  const [isRespawning, setIsRespawning] = useState(false);
 
   const allSeats = useMemo(() => {
     return houses.flatMap(h => getHouseSeats(h.id, h.position, h.width, h.depth));
@@ -163,6 +165,36 @@ const ParkScene = () => {
   }, []);
 
   const handleVehicleMove = useCallback((id: string, pos: [number, number, number], rot: number) => {}, []);
+
+  const handleTakeDamage = useCallback((dmg: number) => {
+    setHealth(prev => {
+      const newHealth = Math.max(0, prev - dmg);
+      if (newHealth <= 0) {
+        // Respawn from sky
+        setIsRespawning(true);
+        setTimeout(() => {
+          const spawnPoints: [number, number, number][] = [
+            [0, 0, 15], [20, 0, 0], [-20, 0, 10], [10, 0, -20], [-15, 0, -5],
+          ];
+          const spawn = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
+          setPlayerPos(new THREE.Vector3(spawn[0], 30, spawn[2])); // Start from sky
+          setHealth(100);
+          setIsRespawning(false);
+          // Gravity drop
+          const dropInterval = setInterval(() => {
+            setPlayerPos(prev => {
+              if (prev.y <= 0) {
+                clearInterval(dropInterval);
+                return new THREE.Vector3(prev.x, 0, prev.z);
+              }
+              return new THREE.Vector3(prev.x, prev.y - 1, prev.z);
+            });
+          }, 50);
+        }, 1500);
+      }
+      return newHealth;
+    });
+  }, []);
 
   const currentHouse = houses.find(h => h.id === currentHouseId);
 
