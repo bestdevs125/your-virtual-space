@@ -12,36 +12,48 @@ interface Bullet {
 interface WeaponSystemProps {
   hasGun: boolean;
   isLocked: boolean;
+  onHit?: () => void;
+  playerPos: THREE.Vector3;
+  playerRotation: number;
 }
 
-// 3D gun model visible in first person
-const GunModel = () => (
-  <group position={[0.35, -0.3, -0.6]} rotation={[0, Math.PI, 0]}>
-    {/* Barrel */}
-    <mesh castShadow>
-      <boxGeometry args={[0.05, 0.05, 0.4]} />
-      <meshStandardMaterial color="#333" metalness={0.8} roughness={0.2} />
-    </mesh>
-    {/* Body */}
-    <mesh position={[0, -0.04, 0.15]} castShadow>
-      <boxGeometry args={[0.06, 0.08, 0.2]} />
-      <meshStandardMaterial color="#555" metalness={0.7} roughness={0.3} />
-    </mesh>
-    {/* Handle */}
-    <mesh position={[0, -0.12, 0.2]} rotation={[0.3, 0, 0]} castShadow>
-      <boxGeometry args={[0.05, 0.12, 0.06]} />
-      <meshStandardMaterial color="#2a1a0a" roughness={0.9} />
-    </mesh>
-  </group>
-);
+// Bullet with fire trail
+const BulletMesh = ({ position, direction }: { position: THREE.Vector3; direction: THREE.Vector3 }) => {
+  const trailRef = useRef<THREE.Group>(null);
 
-// Bullet tracer
-const BulletMesh = ({ position }: { position: THREE.Vector3 }) => (
-  <mesh position={position}>
-    <sphereGeometry args={[0.05, 6, 6]} />
-    <meshStandardMaterial color="#ffaa00" emissive="#ff8800" emissiveIntensity={2} />
-  </mesh>
-);
+  return (
+    <group position={position}>
+      {/* Core bullet */}
+      <mesh>
+        <sphereGeometry args={[0.06, 8, 8]} />
+        <meshStandardMaterial color="#ffcc00" emissive="#ff6600" emissiveIntensity={3} />
+      </mesh>
+      {/* Fire glow */}
+      <mesh>
+        <sphereGeometry args={[0.12, 8, 8]} />
+        <meshStandardMaterial color="#ff4400" emissive="#ff2200" emissiveIntensity={2} transparent opacity={0.5} />
+      </mesh>
+      {/* Fire trail particles */}
+      {[0.15, 0.3, 0.45, 0.6, 0.8].map((d, i) => {
+        const trailPos = position.clone().sub(direction.clone().multiplyScalar(d));
+        return (
+          <mesh key={i} position={trailPos.sub(position)}>
+            <sphereGeometry args={[0.04 + i * 0.01, 6, 6]} />
+            <meshStandardMaterial
+              color={i < 2 ? '#ff6600' : '#ff3300'}
+              emissive={i < 2 ? '#ff4400' : '#cc1100'}
+              emissiveIntensity={2 - i * 0.3}
+              transparent
+              opacity={0.6 - i * 0.1}
+            />
+          </mesh>
+        );
+      })}
+      {/* Point light for fire glow */}
+      <pointLight color="#ff6600" intensity={2} distance={3} />
+    </group>
+  );
+};
 
 // Gun pickup on the ground
 interface GunPickupProps {
@@ -78,7 +90,6 @@ export const GunPickup = ({ position, onPickup, playerPos }: GunPickupProps) => 
         <boxGeometry args={[0.06, 0.1, 0.06]} />
         <meshStandardMaterial color="#2a1a0a" />
       </mesh>
-      {/* Glow ring */}
       <mesh position={[0, -0.3, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.3, 0.5, 16]} />
         <meshStandardMaterial color="#ffaa00" emissive="#ffaa00" emissiveIntensity={1} transparent opacity={0.4} side={THREE.DoubleSide} />
@@ -87,24 +98,24 @@ export const GunPickup = ({ position, onPickup, playerPos }: GunPickupProps) => 
   );
 };
 
-const WeaponSystem = ({ hasGun, isLocked }: WeaponSystemProps) => {
+const WeaponSystem = ({ hasGun, isLocked, onHit, playerPos, playerRotation }: WeaponSystemProps) => {
   const { camera } = useThree();
   const [bullets, setBullets] = useState<Bullet[]>([]);
   const gunGroupRef = useRef<THREE.Group>(null);
 
   const shoot = useCallback(() => {
     if (!hasGun) return;
-    const dir = new THREE.Vector3();
-    camera.getWorldDirection(dir);
-    const pos = camera.position.clone().add(dir.clone().multiplyScalar(1));
+    // Shoot from player position towards the direction player faces
+    const dir = new THREE.Vector3(-Math.sin(playerRotation), 0, -Math.cos(playerRotation));
+    const pos = playerPos.clone().add(new THREE.Vector3(0, 1.3, 0)).add(dir.clone().multiplyScalar(0.5));
 
     setBullets(prev => [...prev, {
-      id: `b-${Date.now()}`,
+      id: `b-${Date.now()}-${Math.random()}`,
       position: pos,
       direction: dir.clone(),
       age: 0,
     }]);
-  }, [hasGun, camera]);
+  }, [hasGun, playerPos, playerRotation]);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -117,17 +128,11 @@ const WeaponSystem = ({ hasGun, isLocked }: WeaponSystemProps) => {
   }, [isLocked, hasGun, shoot]);
 
   useFrame((_, delta) => {
-    // Update gun position to follow camera
-    if (gunGroupRef.current && hasGun) {
-      gunGroupRef.current.position.copy(camera.position);
-      gunGroupRef.current.quaternion.copy(camera.quaternion);
-    }
-
     // Move bullets
     setBullets(prev => prev
       .map(b => ({
         ...b,
-        position: b.position.clone().add(b.direction.clone().multiplyScalar(80 * delta)),
+        position: b.position.clone().add(b.direction.clone().multiplyScalar(60 * delta)),
         age: b.age + delta,
       }))
       .filter(b => b.age < 3)
@@ -136,16 +141,9 @@ const WeaponSystem = ({ hasGun, isLocked }: WeaponSystemProps) => {
 
   return (
     <group>
-      {/* First person gun */}
-      {hasGun && (
-        <group ref={gunGroupRef}>
-          <GunModel />
-        </group>
-      )}
-
-      {/* Bullets */}
+      {/* Bullets with fire */}
       {bullets.map(b => (
-        <BulletMesh key={b.id} position={b.position} />
+        <BulletMesh key={b.id} position={b.position} direction={b.direction} />
       ))}
     </group>
   );
