@@ -346,13 +346,18 @@ const ParkScene = () => {
           isMounted={isMounted}
         />
 
-        {/* Player's own avatar (3rd person) */}
-        <CustomAvatar
-          position={[playerPos.x, playerPos.y, playerPos.z]}
-          rotation={playerRotation}
-          config={characterConfig}
-          isWalking={playerWalking}
-        />
+        {/* Player's own avatar (3rd person) - hide when mounted */}
+        {!isMounted && (
+          <CustomAvatar
+            position={[playerPos.x, playerPos.y, playerPos.z]}
+            rotation={playerRotation}
+            config={characterConfig}
+            isWalking={playerWalking}
+          />
+        )}
+
+        {/* Dog companion */}
+        <Dog playerPos={playerPos} />
 
         {/* Player name above avatar */}
         <Text
