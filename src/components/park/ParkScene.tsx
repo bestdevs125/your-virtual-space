@@ -460,6 +460,7 @@ const ParkScene = () => {
         <VehicleSystem
           vehicles={VEHICLES}
           playerPos={playerPos}
+          playerRotation={playerRotation}
           isMounted={isMounted}
           mountedVehicleId={mountedVehicle?.id ?? null}
           onMount={handleMount}

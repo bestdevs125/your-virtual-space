@@ -287,6 +287,7 @@ export const MountedVehicle = ({
 const VehicleSystem = ({
   vehicles,
   playerPos,
+  playerRotation,
   isMounted,
   mountedVehicleId,
   onMount,
