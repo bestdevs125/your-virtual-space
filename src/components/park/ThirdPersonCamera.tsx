@@ -130,7 +130,8 @@ const ThirdPersonCamera = ({
     const camZ = playerPosition.current.z + Math.cos(yaw.current) * CAMERA_DISTANCE;
     const camY = playerPosition.current.y + CAMERA_HEIGHT + Math.sin(pitch.current) * 2;
 
-    camera.position.lerp(new THREE.Vector3(camX, camY, camZ), 0.1);
+    const lerpFactor = isMounted ? 0.3 : 0.1;
+    camera.position.lerp(new THREE.Vector3(camX, camY, camZ), lerpFactor);
     camera.lookAt(playerPosition.current.x, playerPosition.current.y + 1.5, playerPosition.current.z);
 
     onPositionChange(playerPosition.current.clone());
