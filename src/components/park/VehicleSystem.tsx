@@ -293,7 +293,6 @@ const VehicleSystem = ({
   onDismount,
   onVehicleMove,
 }: VehicleSystemProps) => {
-  const { camera } = useThree();
   const mountedVehicle = vehicles.find(v => v.id === mountedVehicleId);
 
   // Dismount with F when mounted
@@ -319,7 +318,7 @@ const VehicleSystem = ({
         />
       ))}
       {isMounted && mountedVehicle && (
-        <MountedVehicle vehicle={mountedVehicle} camera={camera} />
+        <MountedVehicle vehicle={mountedVehicle} playerPos={playerPos} playerRotation={playerRotation} />
       )}
     </>
   );
