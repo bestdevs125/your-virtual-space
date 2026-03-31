@@ -23,6 +23,7 @@ import Boat from './Boat';
 import WeaponSystem, { GunPickup } from './WeaponSystem';
 import VehicleSystem, { VehicleData } from './VehicleSystem';
 import CharacterCustomization, { CharacterConfig, DEFAULT_CHARACTER } from './CharacterCustomization';
+import Dog from './Dog';
 
 const INITIAL_HOUSES: HouseData[] = [
   { id: 'house-1', position: [-20, 0, -15], wallColor: '#d4a574', roofColor: '#8B4513', doorColor: '#5c3a1e', width: 5, depth: 4, height: 3, owner: null },
@@ -345,13 +346,18 @@ const ParkScene = () => {
           isMounted={isMounted}
         />
 
-        {/* Player's own avatar (3rd person) */}
-        <CustomAvatar
-          position={[playerPos.x, playerPos.y, playerPos.z]}
-          rotation={playerRotation}
-          config={characterConfig}
-          isWalking={playerWalking}
-        />
+        {/* Player's own avatar (3rd person) - hide when mounted */}
+        {!isMounted && (
+          <CustomAvatar
+            position={[playerPos.x, playerPos.y, playerPos.z]}
+            rotation={playerRotation}
+            config={characterConfig}
+            isWalking={playerWalking}
+          />
+        )}
+
+        {/* Dog companion */}
+        <Dog playerPos={playerPos} />
 
         {/* Player name above avatar */}
         <Text
@@ -460,6 +466,7 @@ const ParkScene = () => {
         <VehicleSystem
           vehicles={VEHICLES}
           playerPos={playerPos}
+          playerRotation={playerRotation}
           isMounted={isMounted}
           mountedVehicleId={mountedVehicle?.id ?? null}
           onMount={handleMount}

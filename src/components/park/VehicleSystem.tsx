@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 
@@ -16,6 +16,7 @@ export interface VehicleData {
 interface VehicleSystemProps {
   vehicles: VehicleData[];
   playerPos: THREE.Vector3;
+  playerRotation: number;
   isMounted: boolean;
   mountedVehicleId: string | null;
   onMount: (vehicle: VehicleData) => void;
@@ -255,30 +256,22 @@ const Vehicle = ({
   );
 };
 
-// ──────────── Mounted Vehicle (follows camera) ────────────
+// ──────────── Mounted Vehicle (follows player position) ────────────
 export const MountedVehicle = ({
   vehicle,
-  camera,
+  playerPos,
+  playerRotation,
 }: {
   vehicle: VehicleData;
-  camera: THREE.Camera;
+  playerPos: THREE.Vector3;
+  playerRotation: number;
 }) => {
   const groupRef = useRef<THREE.Group>(null);
 
   useFrame(() => {
     if (!groupRef.current) return;
-    const forward = new THREE.Vector3();
-    camera.getWorldDirection(forward);
-    forward.y = 0;
-    forward.normalize();
-
-    const yOffset = vehicle.type === 'horse' ? -1.2 : vehicle.type === 'car' ? -0.8 : -1;
-    groupRef.current.position.set(
-      camera.position.x - forward.x * 0.5,
-      camera.position.y + yOffset,
-      camera.position.z - forward.z * 0.5
-    );
-    groupRef.current.rotation.y = Math.atan2(forward.x, forward.z);
+    groupRef.current.position.set(playerPos.x, 0, playerPos.z);
+    groupRef.current.rotation.y = playerRotation;
   });
 
   return (
@@ -294,13 +287,13 @@ export const MountedVehicle = ({
 const VehicleSystem = ({
   vehicles,
   playerPos,
+  playerRotation,
   isMounted,
   mountedVehicleId,
   onMount,
   onDismount,
   onVehicleMove,
 }: VehicleSystemProps) => {
-  const { camera } = useThree();
   const mountedVehicle = vehicles.find(v => v.id === mountedVehicleId);
 
   // Dismount with F when mounted
@@ -326,7 +319,7 @@ const VehicleSystem = ({
         />
       ))}
       {isMounted && mountedVehicle && (
-        <MountedVehicle vehicle={mountedVehicle} camera={camera} />
+        <MountedVehicle vehicle={mountedVehicle} playerPos={playerPos} playerRotation={playerRotation} />
       )}
     </>
   );
