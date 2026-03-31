@@ -16,6 +16,7 @@ export interface VehicleData {
 interface VehicleSystemProps {
   vehicles: VehicleData[];
   playerPos: THREE.Vector3;
+  playerRotation: number;
   isMounted: boolean;
   mountedVehicleId: string | null;
   onMount: (vehicle: VehicleData) => void;
