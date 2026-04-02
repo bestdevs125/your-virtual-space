@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber';
 import { Sky, Text } from '@react-three/drei';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 import Ground from './Ground';
 import Tree from './Tree';
@@ -24,6 +24,7 @@ import WeaponSystem, { GunPickup } from './WeaponSystem';
 import VehicleSystem, { VehicleData } from './VehicleSystem';
 import CharacterCustomization, { CharacterConfig, DEFAULT_CHARACTER } from './CharacterCustomization';
 import Dog from './Dog';
+import { setWorldObstacles } from './CollisionSystem';
 
 const INITIAL_HOUSES: HouseData[] = [
   { id: 'house-1', position: [-20, 0, -15], wallColor: '#d4a574', roofColor: '#8B4513', doorColor: '#5c3a1e', width: 5, depth: 4, height: 3, owner: null },
@@ -114,6 +115,25 @@ const ParkScene = () => {
   const allSeats = useMemo(() => {
     return houses.flatMap(h => getHouseSeats(h.id, h.position, h.width, h.depth));
   }, [houses]);
+
+  // Initialize world collision obstacles
+  useEffect(() => {
+    const benchData = [
+      { position: [4, 0, 8] as [number, number, number], rotation: [0, -Math.PI / 2, 0] as [number, number, number] },
+      { position: [-4, 0, 8] as [number, number, number], rotation: [0, Math.PI / 2, 0] as [number, number, number] },
+      { position: [4, 0, -8] as [number, number, number], rotation: [0, -Math.PI / 2, 0] as [number, number, number] },
+      { position: [-4, 0, -8] as [number, number, number], rotation: [0, Math.PI / 2, 0] as [number, number, number] },
+      { position: [8, 0, 4] as [number, number, number] },
+      { position: [-8, 0, 4] as [number, number, number] },
+      { position: [-10, 0, -52] as [number, number, number], rotation: [0, Math.PI, 0] as [number, number, number] },
+      { position: [15, 0, -50] as [number, number, number], rotation: [0, Math.PI, 0] as [number, number, number] },
+    ];
+    const lampPositions: [number, number, number][] = [
+      [1.8, 0, 12], [-1.8, 0, 12], [1.8, 0, -12], [-1.8, 0, -12],
+      [12, 0, 1.8], [-12, 0, 1.8], [0, 0, -48], [-20, 0, -46], [20, 0, -46],
+    ];
+    setWorldObstacles(TREES, benchData, lampPositions, [0, 0, 0]);
+  }, []);
 
   const handleEnterHouse = useCallback((houseId: string) => {
     setCurrentHouseId(houseId);
