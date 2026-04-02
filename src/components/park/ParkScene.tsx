@@ -392,7 +392,7 @@ const ParkScene = () => {
         </Text>
 
         <Ground />
-        <Ocean />
+        <Ocean visible={!currentHouseId} />
 
         <Boat position={[-15, -0.1, -90]} color="#8B4513" size="medium" />
         <Boat position={[10, -0.1, -100]} color="#5c3a1e" size="large" />
