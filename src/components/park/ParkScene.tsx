@@ -116,6 +116,25 @@ const ParkScene = () => {
     return houses.flatMap(h => getHouseSeats(h.id, h.position, h.width, h.depth));
   }, [houses]);
 
+  // Initialize world collision obstacles
+  useEffect(() => {
+    const benchData = [
+      { position: [4, 0, 8] as [number, number, number], rotation: [0, -Math.PI / 2, 0] as [number, number, number] },
+      { position: [-4, 0, 8] as [number, number, number], rotation: [0, Math.PI / 2, 0] as [number, number, number] },
+      { position: [4, 0, -8] as [number, number, number], rotation: [0, -Math.PI / 2, 0] as [number, number, number] },
+      { position: [-4, 0, -8] as [number, number, number], rotation: [0, Math.PI / 2, 0] as [number, number, number] },
+      { position: [8, 0, 4] as [number, number, number] },
+      { position: [-8, 0, 4] as [number, number, number] },
+      { position: [-10, 0, -52] as [number, number, number], rotation: [0, Math.PI, 0] as [number, number, number] },
+      { position: [15, 0, -50] as [number, number, number], rotation: [0, Math.PI, 0] as [number, number, number] },
+    ];
+    const lampPositions: [number, number, number][] = [
+      [1.8, 0, 12], [-1.8, 0, 12], [1.8, 0, -12], [-1.8, 0, -12],
+      [12, 0, 1.8], [-12, 0, 1.8], [0, 0, -48], [-20, 0, -46], [20, 0, -46],
+    ];
+    setWorldObstacles(TREES, benchData, lampPositions, [0, 0, 0]);
+  }, []);
+
   const handleEnterHouse = useCallback((houseId: string) => {
     setCurrentHouseId(houseId);
     setHouses(prev => prev.map(h =>
