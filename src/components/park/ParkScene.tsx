@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber';
 import { Sky, Text } from '@react-three/drei';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 import Ground from './Ground';
 import Tree from './Tree';
