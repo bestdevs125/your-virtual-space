@@ -364,6 +364,8 @@ const ParkScene = () => {
           onPointerLockChange={setIsPointerLocked}
           speed={vehicleSpeed}
           isMounted={isMounted}
+          isInsideHouse={!!currentHouseId}
+          currentHouseId={currentHouseId}
         />
 
         {/* Player's own avatar (3rd person) - hide when mounted */}
