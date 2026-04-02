@@ -24,6 +24,7 @@ import WeaponSystem, { GunPickup } from './WeaponSystem';
 import VehicleSystem, { VehicleData } from './VehicleSystem';
 import CharacterCustomization, { CharacterConfig, DEFAULT_CHARACTER } from './CharacterCustomization';
 import Dog from './Dog';
+import { setWorldObstacles } from './CollisionSystem';
 
 const INITIAL_HOUSES: HouseData[] = [
   { id: 'house-1', position: [-20, 0, -15], wallColor: '#d4a574', roofColor: '#8B4513', doorColor: '#5c3a1e', width: 5, depth: 4, height: 3, owner: null },

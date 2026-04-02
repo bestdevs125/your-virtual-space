@@ -18,7 +18,7 @@ const Dog = ({ playerPos, followDistance = 4 }: DogProps) => {
   const legBL = useRef<THREE.Mesh>(null);
   const legBR = useRef<THREE.Mesh>(null);
   const tailRef = useRef<THREE.Mesh>(null);
-  const headRef = useRef<THREE.Mesh>(null);
+  const headRef = useRef<THREE.Group>(null);
   const bodyBobRef = useRef(0);
   const idleTimer = useRef(0);
   const idleAction = useRef<'idle' | 'sniff' | 'look'>('idle');
