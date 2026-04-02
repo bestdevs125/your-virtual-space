@@ -8,7 +8,7 @@ import { SeatSpot } from './SeatSystem';
 const MOUSE_SENSITIVITY = 0.002;
 const CAMERA_DISTANCE = 5;
 const CAMERA_HEIGHT = 2.5;
-const MAX_DELTA = 0.05; // cap delta to prevent teleporting
+const MAX_DELTA = 0.05;
 
 interface ThirdPersonCameraProps {
   onPositionChange: (pos: THREE.Vector3) => void;
@@ -21,6 +21,43 @@ interface ThirdPersonCameraProps {
   onPointerLockChange?: (locked: boolean) => void;
   speed?: number;
   isMounted?: boolean;
+  isInsideHouse?: boolean;
+  currentHouseId?: string | null;
+}
+
+// Check if a point is inside any house bounding box
+function isPointInsideHouse(point: THREE.Vector3, houses: HouseData[]): HouseData | null {
+  for (const house of houses) {
+    const [hx, , hz] = house.position;
+    const hw = house.width / 2;
+    const hd = house.depth / 2;
+    if (
+      point.x > hx - hw && point.x < hx + hw &&
+      point.z > hz - hd && point.z < hz + hd
+    ) {
+      return house;
+    }
+  }
+  return null;
+}
+
+// Clamp camera position to stay within house boundaries
+function clampCameraToHouse(
+  camPos: THREE.Vector3,
+  playerPos: THREE.Vector3,
+  house: HouseData
+): THREE.Vector3 {
+  const [hx, , hz] = house.position;
+  const hw = house.width / 2 - 0.3;
+  const hd = house.depth / 2 - 0.3;
+  const maxH = house.height - 0.3;
+
+  const clamped = camPos.clone();
+  clamped.x = Math.max(hx - hw, Math.min(hx + hw, clamped.x));
+  clamped.z = Math.max(hz - hd, Math.min(hz + hd, clamped.z));
+  clamped.y = Math.max(0.5, Math.min(maxH, clamped.y));
+
+  return clamped;
 }
 
 const ThirdPersonCamera = ({
@@ -34,6 +71,8 @@ const ThirdPersonCamera = ({
   onPointerLockChange,
   speed = 8,
   isMounted = false,
+  isInsideHouse = false,
+  currentHouseId = null,
 }: ThirdPersonCameraProps) => {
   const { camera, gl } = useThree();
   const keys = useRef<Record<string, boolean>>({});
@@ -80,7 +119,7 @@ const ThirdPersonCamera = ({
   }, [camera, gl, onToggleBuild, onPointerLockChange]);
 
   useFrame((_, rawDelta) => {
-    const delta = Math.min(rawDelta, MAX_DELTA); // prevent teleporting on lag spikes
+    const delta = Math.min(rawDelta, MAX_DELTA);
 
     if (isSitting && currentSeat) {
       const target = new THREE.Vector3(
@@ -100,10 +139,7 @@ const ThirdPersonCamera = ({
       return;
     }
 
-    // Forward direction: the direction the camera looks at (towards the player from behind)
-    // Camera is at yaw behind player, so player faces -yaw direction
     const forward = new THREE.Vector3(-Math.sin(yaw.current), 0, -Math.cos(yaw.current));
-    // Right is perpendicular to forward (fixed: was inverted before)
     const right = new THREE.Vector3(Math.cos(yaw.current), 0, -Math.sin(yaw.current));
     const direction = new THREE.Vector3();
 
@@ -126,17 +162,29 @@ const ThirdPersonCamera = ({
       );
       playerPosition.current.x = resolved.x;
       playerPosition.current.z = resolved.z;
-      // Character faces the movement direction
       onRotationChange(Math.atan2(direction.x, direction.z));
     }
 
-    // Camera behind player based on yaw
-    const camX = playerPosition.current.x + Math.sin(yaw.current) * CAMERA_DISTANCE;
-    const camZ = playerPosition.current.z + Math.cos(yaw.current) * CAMERA_DISTANCE;
-    const camY = playerPosition.current.y + CAMERA_HEIGHT + Math.sin(pitch.current) * 2;
+    // Camera positioning - adjust for indoor/outdoor
+    const currentHouse = currentHouseId ? houses.find(h => h.id === currentHouseId) : null;
+    
+    // Use shorter distance when inside house
+    const camDist = isInsideHouse ? 2.5 : CAMERA_DISTANCE;
+    const camHeight = isInsideHouse ? 1.5 : CAMERA_HEIGHT;
+
+    let camX = playerPosition.current.x + Math.sin(yaw.current) * camDist;
+    let camZ = playerPosition.current.z + Math.cos(yaw.current) * camDist;
+    let camY = playerPosition.current.y + camHeight + Math.sin(pitch.current) * (isInsideHouse ? 0.8 : 2);
+
+    let desiredCamPos = new THREE.Vector3(camX, camY, camZ);
+
+    // If player is inside a house, clamp camera to stay inside
+    if (isInsideHouse && currentHouse) {
+      desiredCamPos = clampCameraToHouse(desiredCamPos, playerPosition.current, currentHouse);
+    }
 
     const lerpFactor = isMounted ? 0.3 : 0.15;
-    camera.position.lerp(new THREE.Vector3(camX, camY, camZ), lerpFactor);
+    camera.position.lerp(desiredCamPos, lerpFactor);
     camera.lookAt(playerPosition.current.x, playerPosition.current.y + 1.5, playerPosition.current.z);
 
     onPositionChange(playerPosition.current.clone());

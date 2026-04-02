@@ -364,17 +364,17 @@ const ParkScene = () => {
           onPointerLockChange={setIsPointerLocked}
           speed={vehicleSpeed}
           isMounted={isMounted}
+          isInsideHouse={!!currentHouseId}
+          currentHouseId={currentHouseId}
         />
 
-        {/* Player's own avatar (3rd person) - hide when mounted */}
-        {!isMounted && (
-          <CustomAvatar
-            position={[playerPos.x, playerPos.y, playerPos.z]}
-            rotation={playerRotation}
-            config={characterConfig}
-            isWalking={playerWalking}
-          />
-        )}
+        {/* Player's own avatar (3rd person) - always visible */}
+        <CustomAvatar
+          position={[playerPos.x, playerPos.y, playerPos.z]}
+          rotation={playerRotation}
+          config={characterConfig}
+          isWalking={playerWalking && !isMounted}
+        />
 
         {/* Dog companion */}
         <Dog playerPos={playerPos} />
@@ -392,7 +392,7 @@ const ParkScene = () => {
         </Text>
 
         <Ground />
-        <Ocean />
+        <Ocean visible={!currentHouseId} />
 
         <Boat position={[-15, -0.1, -90]} color="#8B4513" size="medium" />
         <Boat position={[10, -0.1, -100]} color="#5c3a1e" size="large" />
