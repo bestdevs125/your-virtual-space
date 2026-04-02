@@ -8,6 +8,7 @@ import { SeatSpot } from './SeatSystem';
 const MOUSE_SENSITIVITY = 0.002;
 const CAMERA_DISTANCE = 5;
 const CAMERA_HEIGHT = 2.5;
+const MAX_DELTA = 0.05; // cap delta to prevent teleporting
 
 interface ThirdPersonCameraProps {
   onPositionChange: (pos: THREE.Vector3) => void;
@@ -78,7 +79,9 @@ const ThirdPersonCamera = ({
     };
   }, [camera, gl, onToggleBuild, onPointerLockChange]);
 
-  useFrame((_, delta) => {
+  useFrame((_, rawDelta) => {
+    const delta = Math.min(rawDelta, MAX_DELTA); // prevent teleporting on lag spikes
+
     if (isSitting && currentSeat) {
       const target = new THREE.Vector3(
         currentSeat.seatCameraPos[0],
@@ -97,9 +100,11 @@ const ThirdPersonCamera = ({
       return;
     }
 
-    // Forward = direction camera looks at (away from camera towards player)
+    // Forward direction: the direction the camera looks at (towards the player from behind)
+    // Camera is at yaw behind player, so player faces -yaw direction
     const forward = new THREE.Vector3(-Math.sin(yaw.current), 0, -Math.cos(yaw.current));
-    const right = new THREE.Vector3(-Math.cos(yaw.current), 0, Math.sin(yaw.current));
+    // Right is perpendicular to forward (fixed: was inverted before)
+    const right = new THREE.Vector3(Math.cos(yaw.current), 0, -Math.sin(yaw.current));
     const direction = new THREE.Vector3();
 
     if (keys.current['KeyW'] || keys.current['ArrowUp']) direction.add(forward);
@@ -121,7 +126,7 @@ const ThirdPersonCamera = ({
       );
       playerPosition.current.x = resolved.x;
       playerPosition.current.z = resolved.z;
-      // Character faces the movement direction (away from camera)
+      // Character faces the movement direction
       onRotationChange(Math.atan2(direction.x, direction.z));
     }
 
@@ -130,7 +135,7 @@ const ThirdPersonCamera = ({
     const camZ = playerPosition.current.z + Math.cos(yaw.current) * CAMERA_DISTANCE;
     const camY = playerPosition.current.y + CAMERA_HEIGHT + Math.sin(pitch.current) * 2;
 
-    const lerpFactor = isMounted ? 0.3 : 0.1;
+    const lerpFactor = isMounted ? 0.3 : 0.15;
     camera.position.lerp(new THREE.Vector3(camX, camY, camZ), lerpFactor);
     camera.lookAt(playerPosition.current.x, playerPosition.current.y + 1.5, playerPosition.current.z);
 
