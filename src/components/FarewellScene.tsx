@@ -5,27 +5,14 @@ import girlImg from '@/assets/girl.png';
 const FarewellScene = () => {
   const [phase, setPhase] = useState(0);
   const [showParticles, setShowParticles] = useState(false);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // Play video with sound on user interaction
-    const playVideo = () => {
-      if (videoRef.current) {
-        videoRef.current.muted = false;
-        videoRef.current.volume = 0.6;
-        videoRef.current.play().catch(() => {});
-      }
-    };
-    
-    // Try unmuting on first click/touch
-    const handleInteraction = () => {
-      playVideo();
-      document.removeEventListener('click', handleInteraction);
-      document.removeEventListener('touchstart', handleInteraction);
-    };
-    document.addEventListener('click', handleInteraction);
-    document.addEventListener('touchstart', handleInteraction);
+    audioRef.current = new Audio('/bg-audio.mp3');
+    audioRef.current.loop = true;
+    audioRef.current.volume = 0.8;
 
     const timers = [
       setTimeout(() => setPhase(1), 800),
@@ -36,42 +23,60 @@ const FarewellScene = () => {
       setTimeout(() => setPhase(6), 12500),
       setTimeout(() => setShowParticles(true), 5000),
     ];
+
     return () => {
       timers.forEach(clearTimeout);
-      document.removeEventListener('click', handleInteraction);
-      document.removeEventListener('touchstart', handleInteraction);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
     };
   }, []);
 
+  const toggleAudio = async () => {
+    if (!audioRef.current) return;
+
+    if (isAudioPlaying) {
+      audioRef.current.pause();
+      setIsAudioPlaying(false);
+      return;
+    }
+
+    try {
+      await audioRef.current.play();
+      setIsAudioPlaying(true);
+    } catch (error) {
+      console.error('Audio playback failed', error);
+    }
+  };
+
   return (
-    <div
-      className="relative w-screen h-screen overflow-hidden bg-black select-none cursor-default"
-      onClick={() => {
-        if (videoRef.current && videoRef.current.muted) {
-          videoRef.current.muted = false;
-          videoRef.current.volume = 0.6;
-          videoRef.current.play().catch(() => {});
-        }
-      }}
-    >
-      {/* Tap to unmute hint */}
-      <div
-        className="absolute top-[8%] left-1/2 -translate-x-1/2 z-[10] transition-opacity duration-[3s]"
-        style={{ opacity: phase < 2 ? 1 : 0, pointerEvents: 'none' }}
+    <div className="relative w-screen h-screen overflow-hidden bg-black select-none cursor-default">
+      <button
+        type="button"
+        onClick={toggleAudio}
+        className="absolute right-4 top-4 z-[20] rounded-full border border-white/15 bg-black/45 px-4 py-2 text-xs tracking-[0.3em] text-white/80 backdrop-blur-sm transition hover:bg-black/60"
+        aria-label={isAudioPlaying ? 'Pause soundtrack' : 'Play soundtrack'}
       >
-        <p className="text-white/40 text-xs tracking-widest animate-pulse">
-          🔊 ক্লিক করুন শব্দ শুনতে
+        {isAudioPlaying ? 'SOUND ON' : 'PLAY SOUND'}
+      </button>
+
+      <div
+        className="absolute top-[8%] left-1/2 z-[10] -translate-x-1/2 transition-opacity duration-[3s]"
+        style={{ opacity: phase < 2 && !isAudioPlaying ? 1 : 0, pointerEvents: 'none' }}
+      >
+        <p className="text-xs tracking-widest text-white/40">
+          উপরে button চাপলে গান বাজবে
         </p>
       </div>
 
-      {/* Video Background - WITH SOUND */}
       <video
         ref={videoRef}
         autoPlay
         muted
         loop
         playsInline
-        className="absolute inset-0 w-full h-full object-cover"
+        className="absolute inset-0 h-full w-full object-cover"
         style={{
           opacity: 0.55,
           filter: 'saturate(0.35) contrast(1.15) brightness(0.55)',
@@ -80,8 +85,8 @@ const FarewellScene = () => {
         <source src="/bg-video.mp4" type="video/mp4" />
       </video>
 
-      {/* Cinematic overlay - darker bottom for character blending */}
-      <div className="absolute inset-0 z-[1]"
+      <div
+        className="absolute inset-0 z-[1]"
         style={{
           background: `
             linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 25%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.3) 100%),
@@ -90,7 +95,6 @@ const FarewellScene = () => {
         }}
       />
 
-      {/* Floating dust particles */}
       {showParticles && (
         <div className="absolute inset-0 z-[2] pointer-events-none">
           {Array.from({ length: 30 }).map((_, i) => (
@@ -111,7 +115,6 @@ const FarewellScene = () => {
         </div>
       )}
 
-      {/* Girl - blended into the dark scene */}
       <div
         className="absolute z-[3] transition-all ease-out"
         style={{
@@ -132,20 +135,13 @@ const FarewellScene = () => {
               ? 'sepia(0.5) contrast(1.0) brightness(0.35) saturate(0.15)'
               : 'sepia(0.4) contrast(1.05) brightness(0.6) saturate(0.5)',
             transition: 'filter 3s ease',
-            maskImage: `
-              linear-gradient(to bottom, transparent 0%, black 8%, black 60%, transparent 95%),
-              linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)
-            `,
-            WebkitMaskImage: `
-              linear-gradient(to bottom, transparent 0%, black 8%, black 60%, transparent 95%)
-            `,
-            WebkitMaskComposite: 'source-in',
+            maskImage: 'linear-gradient(to bottom, transparent 0%, black 8%, black 60%, transparent 95%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 8%, black 60%, transparent 95%)',
             mixBlendMode: 'luminosity',
           }}
         />
       </div>
 
-      {/* Boy - blended into scene */}
       <div
         className="absolute z-[4] transition-all ease-out"
         style={{
@@ -171,22 +167,16 @@ const FarewellScene = () => {
               : 'sepia(0.4) contrast(1.05) brightness(0.6) saturate(0.5)',
             transition: 'filter 3s ease, transform 3s ease',
             transform: phase >= 5 ? 'scaleX(-1)' : 'scaleX(1)',
-            maskImage: `
-              linear-gradient(to bottom, transparent 0%, black 8%, black 60%, transparent 95%)
-            `,
-            WebkitMaskImage: `
-              linear-gradient(to bottom, transparent 0%, black 8%, black 60%, transparent 95%)
-            `,
+            maskImage: 'linear-gradient(to bottom, transparent 0%, black 8%, black 60%, transparent 95%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 8%, black 60%, transparent 95%)',
             mixBlendMode: 'luminosity',
           }}
         />
       </div>
 
-      {/* Cinematic text overlays */}
       <div className="absolute inset-0 z-[5] pointer-events-none flex flex-col items-center justify-center">
-        {/* Opening */}
         <div
-          className="absolute top-[10%] left-0 right-0 text-center transition-all duration-[3s] ease-out"
+          className="absolute left-0 right-0 top-[10%] text-center transition-all duration-[3s] ease-out"
           style={{
             opacity: phase >= 1 && phase < 4 ? 0.7 : 0,
             transform: phase >= 1 ? 'translateY(0)' : 'translateY(-20px)',
@@ -197,9 +187,8 @@ const FarewellScene = () => {
           </p>
         </div>
 
-        {/* Memory text */}
         <div
-          className="absolute top-[32%] left-0 right-0 text-center transition-all duration-[3s] ease-out px-8"
+          className="absolute left-0 right-0 top-[32%] px-8 text-center transition-all duration-[3s] ease-out"
           style={{
             opacity: phase >= 4 && phase < 6 ? 1 : 0,
             transform: phase >= 4 ? 'translateY(0)' : 'translateY(30px)',
@@ -229,9 +218,8 @@ const FarewellScene = () => {
           </p>
         </div>
 
-        {/* Final goodbye */}
         <div
-          className="absolute bottom-[12%] left-0 right-0 text-center transition-all duration-[4s] ease-out px-8"
+          className="absolute bottom-[12%] left-0 right-0 px-8 text-center transition-all duration-[4s] ease-out"
           style={{
             opacity: phase >= 6 ? 1 : 0,
             transform: phase >= 6 ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.95)',
@@ -260,17 +248,14 @@ const FarewellScene = () => {
         </div>
       </div>
 
-      {/* Letterbox bars */}
-      <div className="absolute top-0 left-0 right-0 h-[6%] bg-black z-[6]" />
-      <div className="absolute bottom-0 left-0 right-0 h-[6%] bg-black z-[6]" />
+      <div className="absolute left-0 right-0 top-0 z-[6] h-[6%] bg-black" />
+      <div className="absolute bottom-0 left-0 right-0 z-[6] h-[6%] bg-black" />
 
-      {/* Vignette */}
       <div
         className="absolute inset-0 z-[5] pointer-events-none"
         style={{ boxShadow: 'inset 0 0 250px 80px rgba(0,0,0,0.85)' }}
       />
 
-      {/* Film grain */}
       <div
         className="absolute inset-0 z-[7] pointer-events-none mix-blend-overlay"
         style={{
