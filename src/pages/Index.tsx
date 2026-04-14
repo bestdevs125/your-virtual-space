@@ -1,7 +1,7 @@
-import ParkScene from '@/components/park/ParkScene';
+import FarewellScene from '@/components/FarewellScene';
 
 const Index = () => {
-  return <ParkScene />;
+  return <FarewellScene />;
 };
 
 export default Index;
